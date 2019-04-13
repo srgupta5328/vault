@@ -1,4 +1,4 @@
-import { currentRouteName } from '@ember/test-helpers';
+import { settled, currentRouteName } from '@ember/test-helpers';
 import { module, test } from 'qunit';
 import { setupApplicationTest } from 'ember-qunit';
 import editPage from 'vault/tests/pages/secrets/backend/ssh/edit-role';
@@ -11,20 +11,22 @@ import authPage from 'vault/tests/pages/auth';
 module('Acceptance | secrets/ssh', function(hooks) {
   setupApplicationTest(hooks);
 
-  hooks.beforeEach(function() {
-    return authPage.login();
+  hooks.beforeEach(async function() {
+    await authPage.login();
   });
 
   const mountAndNav = async () => {
     const path = `ssh-${new Date().getTime()}`;
     await enablePage.enable('ssh', path);
     await editPage.visitRoot({ backend: path });
+    await settled();
     return path;
   };
 
   test('it creates a role and redirects', async function(assert) {
     const path = await mountAndNav(assert);
     await editPage.createOTPRole('role');
+    await settled();
     assert.equal(currentRouteName(), 'vault.cluster.secrets.backend.show', 'redirects to the show page');
     assert.ok(showPage.generateIsPresent, 'shows the generate button');
 
@@ -40,6 +42,7 @@ module('Acceptance | secrets/ssh', function(hooks) {
     assert.equal(listPage.secrets.length, 1, 'shows role in the list');
     let secret = listPage.secrets.objectAt(0);
     await secret.menuToggle();
+    await settled();
     assert.ok(listPage.menuItems.length > 0, 'shows links in the menu');
   });
 
@@ -50,6 +53,7 @@ module('Acceptance | secrets/ssh', function(hooks) {
     assert.equal(currentRouteName(), 'vault.cluster.secrets.backend.edit', 'navs to the edit page');
 
     await editPage.deleteRole();
+    await settled();
     assert.equal(currentRouteName(), 'vault.cluster.secrets.backend.list-root', 'redirects to list page');
     assert.ok(listPage.backendIsEmpty, 'no roles listed');
   });
@@ -69,6 +73,7 @@ module('Acceptance | secrets/ssh', function(hooks) {
     );
 
     await generatePage.generateOTP();
+    await settled();
     assert.ok(generatePage.warningIsPresent, 'shows warning');
     await generatePage.back();
     assert.ok(generatePage.userIsPresent, 'clears generate, shows user input');
